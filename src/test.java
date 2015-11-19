@@ -1,8 +1,10 @@
 import java.io.*;
 import java.sql.*;
-import java.util.Scanner;
+import java.util.*;
+import java.lang.*;
 
-public class test {
+public class SalesSystem {
+    static Scanner in = new Scanner( System.in );
 
     public static void loadData(Connection conn, File inputFile, String table) {
 
@@ -62,10 +64,6 @@ public class test {
             e1.printStackTrace();
             return;
         }
-
-
-
-
     }
 
     public static void executeSqlScript(Connection conn, File inputFile) {
@@ -126,9 +124,211 @@ public class test {
        catch (Exception e) {e.printStackTrace();};
 
     }
+    
+    public static void search(Connection conn) {
+        System.out.println("Choose the Search criterion:");
+        System.out.println("1. Part Name");
+        System.out.println("2. Manufacturer Name");
+        System.out.print("Choose the search criterion: ");  
+        switch (in.nextInt()){
+            case 1: searchByPart(conn); break;
+            case 2: searchByManufacturer(conn); break;
+        }
+    }
+    
+    public static void searchByPart(Connection conn) {
+        System.out.print("Type in the Search Keyword: ");        
+        String keyword = in.next();
+        System.out.println("Choose ordering:");
+        System.out.println("1. By price, ascdending order");
+        System.out.println("2. By price, descending order");
+        System.out.print("Choose the search criterion: ");
+        String order;
+        switch (in.nextInt()) {
+            case 1: order = "ASC"; break;
+            case 2: order = "DESC"; break;
+            default: order = "ASC"; break;
+        }
+        
+        Statement stmt = null;
+        try {
+            stmt = conn.createStatement();
+            
+            ResultSet rs = stmt.executeQuery("SELECT * FROM (part "
+                    + "INNER JOIN manufacturer ON (part.mID=manufacturer.mID) "
+                    + "LEFT OUTER JOIN category on (part.cID=category.cID)) "
+                    + "WHERE pName LIKE '%" + keyword+ "%' "
+                    + "ORDER BY pPrice " + order);
+            
+            System.out.println("| ID | Name | Mnufacturer "
+                + "| Category | Quantity | Warranty | Price |");
+            
+            while (rs.next())
+                System.out.println("| " + rs.getInt("pID") + " | " + rs.getString("pName")
+                    + " | " + rs.getString("mName") + " | " + rs.getString("cName")
+                    + " | " + rs.getInt("pAvailableQuantity") + " | "
+                    + rs.getInt("mWarrantlyPeriod") + " | " + rs.getInt("pPrice"));
+        } //catch (NullPointerException nlp) {    
+            //System.out.println("No part named " + keyword);
+        //}
+        catch(SQLException se){
+            //Handle errors for JDBC
+            se.printStackTrace();
+        } catch(Exception e){
+            //Handle errors for Class.forName
+            e.printStackTrace();
+        } finally{
+            System.out.println();
+            try{
+                if(stmt != null)
+                   stmt.close();
+             } catch(SQLException se){
+             }
+        }
+    }
+    
+    public static void searchByManufacturer(Connection conn) {
+        System.out.print("Type in the Search Keyword: ");        
+        String keyword = in.next();
+        System.out.println("Choose ordering:");
+        System.out.println("1. By price, ascdending order");
+        System.out.println("2. By price, descending order");
+        System.out.print("Choose the search criterion: ");
+        String order;
+        switch (in.nextInt()) {
+            case 1: order = "ASC"; break;
+            case 2: order = "DESC"; break;
+            default: order = "ASC"; break;
+        }
+        
+        Statement stmt = null;
+        try {
+            stmt = conn.createStatement();
+            
+            ResultSet rs = stmt.executeQuery("SELECT * FROM (part "
+                    + "INNER JOIN manufacturer ON (part.mID=manufacturer.mID) "
+                    + "LEFT OUTER JOIN category on (part.cID=category.cID)) "
+                    + "WHERE mName LIKE '%" + keyword+ "%' "
+                    + "ORDER BY pPrice " + order);
+            
+            System.out.println("| ID | Name | Mnufacturer "
+                + "| Category | Quantity | Warranty | Price |");
+            
+            while (rs.next())
+                System.out.println("| " + rs.getInt("pID") + " | " + rs.getString("pName")
+                    + " | " + rs.getString("mName") + " | " + rs.getString("cName")
+                    + " | " + rs.getInt("pAvailableQuantity") + " | "
+                    + rs.getInt("mWarrantlyPeriod") + " | " + rs.getInt("pPrice"));
+        } catch (SQLException se) {
+            //Handle errors for JDBC
+            se.printStackTrace();
+        } catch (Exception e) {
+            //Handle errors for Class.forName
+            e.printStackTrace();
+        } finally{
+            System.out.println();
+            try{
+                if(stmt != null)
+                   stmt.close();
+             }catch(SQLException se){
+             }
+        }
+    }
+    
+    private static java.sql.Date getCurrentDate() {
+        java.util.Date today = new java.util.Date();
+        return new java.sql.Date(today.getTime());
+    }
+    
+    public static void sell(Connection conn) {
+        System.out.print("Enter The Part ID: ");
+        int pid = in.nextInt();
+        System.out.print("Enter The Salesperson ID: ");
+        int sid = in.nextInt();
+        
+        Statement stmt = null;
+        PreparedStatement updateStmt = null;
+        try {
+            stmt = conn.createStatement();
+            
+            // Query salesperson of sid
+            ResultSet rs = stmt.executeQuery("SELECT * FROM salesperson WHERE sID=" + sid);
+            if (!rs.next()) {
+                System.out.println("No salesperson of sid " + sid);
+                return; 
+            }
+
+            rs = stmt.executeQuery("SELECT * FROM part WHERE pID=" + pid);
+            if (!rs.next()) {
+                System.out.println("No part of pid " + pid);
+                return; 
+            }
+            // Query part of pid
+            rs = stmt.executeQuery("SELECT pAvailableQuantity, pName "
+                                            + "FROM part WHERE pID=" + pid);
+            while (rs.next()) {
+                // check availability
+                int availableQuantity = rs.getInt("pAvailableQuantity");
+                if (availableQuantity == 0) {
+                    System.out.println(rs.getString("pName") + " is sold out");
+                    return;
+                } else {
+                    // find next tID
+                    int currentTID;
+                    rs = stmt.executeQuery("SELECT MAX(tID) as max FROM transaction");
+                    if (rs.next())
+                        currentTID = rs.getInt("max") + 1;
+                    else
+                        currentTID = 1;
+
+                    // Insert new transaction
+                    updateStmt = conn.prepareStatement("INSERT INTO transaction "
+                                                + "VALUES (?,?,?,?)");
+                    updateStmt.setInt(1, currentTID);
+                    updateStmt.setInt(2, pid);
+                    updateStmt.setInt(3, sid);
+                    updateStmt.setDate(4, getCurrentDate());
+                    updateStmt.executeUpdate();
+                    conn.commit();
+
+                    // Update available quantity in part
+                    stmt.executeUpdate("UPDATE part "
+                                    + "SET pAvailableQuantity=" + --availableQuantity
+                                    + " WHERE pID=" + pid);
+                }
+            }
+            
+            // print out an informative message
+            rs = stmt.executeQuery("SELECT pName, pID, pAvailableQuantity "
+                                + "FROM part WHERE pID=" + pid);
+            while (rs.next()) {
+                System.out.println("Product: " + rs.getString("pName") +"(id: "
+                                + rs.getInt("pID") + ") Remaining Quality: " 
+                                + rs.getInt("pAvailableQuantity"));
+            }
+        } catch (SQLException se) {
+            //Handle errors for JDBC
+            se.printStackTrace();
+        } catch (Exception e) {
+            //Handle errors for Class.forName
+            e.printStackTrace();
+        } finally {
+            System.out.println();
+            try{
+                if(stmt != null)
+                   stmt.close();
+                if (updateStmt != null)
+                    updateStmt.close();
+             }catch(SQLException se){}       
+        }  
+    }
+    
+    public static void returnMain() {
+        System.out.println();
+    }
+    
 
     public static void main(String args[]){
-
         //connect to database
         Connection connection = null;
         try {
@@ -155,7 +355,6 @@ public class test {
             System.out.println("4.Exit this program");
             System.out.print("Enter Your Choice: ");
 
-            Scanner in = new Scanner( System.in );
             int c = in.nextInt();
 
             // administrator
@@ -239,6 +438,24 @@ public class test {
                 }
 
             }
+            
+            // salesperson
+            else if (c == 2) {
+                System.out.println("\n----Operations for salesperson menu-----");
+                System.out.println("What kinds of operation would you like to perform?");
+                System.out.println("1. Search for parts");
+                System.out.println("2. Sell a part");
+                System.out.println("3. Return to the main menu");
+                System.out.print("Enter Your Choice: ");
+
+                switch(in.nextInt()) {
+                    case 1: search(connection); break;
+                    case 2: sell(connection); break;
+                    case 3: returnMain(); break;
+                    default: System.out.println("Input error"); break;
+                }
+            }
+            
             // exit program
             else if (c == 4)
                 return;

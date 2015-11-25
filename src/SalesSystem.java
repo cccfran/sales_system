@@ -340,127 +340,132 @@ public class SalesSystem {
 
         catch (Exception e) {
             System.out.println(e.getMessage());
-
         }
 
-        while (1==1)
-        {
-            System.out.println("Welcome to sales system!\n");
+        try {
+            while (1==1)
+            {
+                System.out.println("Welcome to sales system!\n");
 
-            System.out.println("-----Main menu-----");
-            System.out.println("What kind of operation would you like to perform?\n");
-            System.out.println("1.Operation for administrator");
-            System.out.println("2.Operation for salesperson");
-            System.out.println("3.Operation for manager");
-            System.out.println("4.Exit this program");
-            System.out.print("Enter Your Choice: ");
-
-            int c = in.nextInt();
-
-            // administrator
-            if (c == 1){
-                int choice = 0;
-                while(1==1)
-                {
-                    System.out.println("\n-----Operation for administrator menu-----");
-                    System.out.println("What kind of operation would you like to perform?\n");
-                    System.out.println("1.Create all tables");
-                    System.out.println("2.Delete all tables");
-                    System.out.println("3.Load from datafile");
-                    System.out.println("4.Show number of records in each table");
-                    System.out.println("5.Return to the main menu");
-                    System.out.print("Enter Your Choice: ");
-                    choice = in.nextInt();
-                    if (choice == 1){
-
-                        File file = null;
-                        try {
-                            file = new File("schema.sql");
-                            executeSqlScript(connection, file);
-                            System.out.println("Processing...Done! Database is initialized!");
-                        }
-                        catch (Exception e){};
-
-                    }
-                    else if (choice == 2){
-
-                        File file = null;
-                        try {
-                            file = new File("delete.sql");
-                            executeSqlScript(connection, file);
-                            System.out.println("Processing...Done! Database is removed!");
-                        }
-                        catch (Exception e){};
-                    }
-                    else if (choice == 3){
-
-                        File file = null;
-                        try {
-                            file = new File("category.txt");
-                            loadData(connection, file, "category");
-
-                            file = new File("manufacturer.txt");
-                            loadData(connection, file, "manufacturer");
-
-                            file = new File("part.txt");
-                            loadData(connection, file, "part");
-
-                            file = new File("salesperson.txt");
-                            loadData(connection, file, "salesperson");
-
-                            file = new File("transaction.txt");
-                            loadData(connection, file, "transaction");
-
-                            System.out.println("Processing...Done! Data is input to the database!");
-                        }
-                        catch (Exception e){};
-
-
-                    }
-                    else if (choice == 4){
-                        System.out.println("Number of records in each table:");
-                        countRow(connection, "category");
-                        countRow(connection, "manufacturer");
-                        countRow(connection, "part");
-                        countRow(connection, "salesperson");
-                        countRow(connection, "transaction");
-                    }
-                    else if (choice == 5){
-                        System.out.println("5.Return...");
-                        break;
-                    }
-                    else {
-                        System.out.println("No such choice");
-//                    try{ connection.close(); }
-//                    catch (Exception err) {};
-                        return;
-                    }
-                }
-
-            }
-            
-            // salesperson
-            else if (c == 2) {
-                System.out.println("\n----Operations for salesperson menu-----");
-                System.out.println("What kinds of operation would you like to perform?");
-                System.out.println("1. Search for parts");
-                System.out.println("2. Sell a part");
-                System.out.println("3. Return to the main menu");
+                System.out.println("-----Main menu-----");
+                System.out.println("What kind of operation would you like to perform?\n");
+                System.out.println("1.Operation for administrator");
+                System.out.println("2.Operation for salesperson");
+                System.out.println("3.Operation for manager");
+                System.out.println("4.Exit this program");
                 System.out.print("Enter Your Choice: ");
 
-                switch(in.nextInt()) {
-                    case 1: search(connection); break;
-                    case 2: sell(connection); break;
-                    case 3: returnMain(); break;
-                    default: System.out.println("Input error"); break;
-                }
-            }
-            
-            // exit program
-            else if (c == 4)
-                return;
+                int c = in.nextInt();
 
+                // administrator
+                if (c == 1){
+                    int choice = 0;
+                    while(1==1)
+                    {
+                        System.out.println("\n-----Operation for administrator menu-----");
+                        System.out.println("What kind of operation would you like to perform?\n");
+                        System.out.println("1.Create all tables");
+                        System.out.println("2.Delete all tables");
+                        System.out.println("3.Load from datafile");
+                        System.out.println("4.Show number of records in each table");
+                        System.out.println("5.Return to the main menu");
+                        System.out.print("Enter Your Choice: ");
+                        choice = in.nextInt();
+                        if (choice == 1){
+
+                            File file = null;
+                            try {
+                                file = new File("schema.sql");
+                                executeSqlScript(connection, file);
+                                System.out.println("Processing...Done! Database is initialized!");
+                            }
+                            catch (Exception e){};
+
+                        }
+                        else if (choice == 2){
+
+                            File file = null;
+                            try {
+                                file = new File("delete.sql");
+                                executeSqlScript(connection, file);
+                                System.out.println("Processing...Done! Database is removed!");
+                            }
+                            catch (Exception e){};
+                        }
+                        else if (choice == 3){
+
+                            File file = null;
+                            try {
+                                file = new File("category.txt");
+                                loadData(connection, file, "category");
+
+                                file = new File("manufacturer.txt");
+                                loadData(connection, file, "manufacturer");
+
+                                file = new File("part.txt");
+                                loadData(connection, file, "part");
+
+                                file = new File("salesperson.txt");
+                                loadData(connection, file, "salesperson");
+
+                                file = new File("transaction.txt");
+                                loadData(connection, file, "transaction");
+
+                                System.out.println("Processing...Done! Data is input to the database!");
+                            }
+                            catch (Exception e){};
+
+
+                        }
+                        else if (choice == 4){
+                            System.out.println("Number of records in each table:");
+                            countRow(connection, "category");
+                            countRow(connection, "manufacturer");
+                            countRow(connection, "part");
+                            countRow(connection, "salesperson");
+                            countRow(connection, "transaction");
+                        }
+                        else if (choice == 5){
+                            System.out.println("5.Return...");
+                            break;
+                        }
+                        else {
+                            System.out.println("No such choice");
+    //                    try{ connection.close(); }
+    //                    catch (Exception err) {};
+                            return;
+                        }
+                    }
+
+                }
+                
+                // salesperson
+                else if (c == 2) {
+                    System.out.println("\n----Operations for salesperson menu-----");
+                    System.out.println("What kinds of operation would you like to perform?");
+                    System.out.println("1. Search for parts");
+                    System.out.println("2. Sell a part");
+                    System.out.println("3. Return to the main menu");
+                    System.out.print("Enter Your Choice: ");
+
+                    switch(in.nextInt()) {
+                        case 1: search(connection); break;
+                        case 2: sell(connection); break;
+                        case 3: returnMain(); break;
+                        default: System.out.println("Input error"); break;
+                    }
+                }
+                
+                // exit program
+                else if (c == 4)
+                    return;
+
+            }
         }
 
+        catch (Exception e) {
+            System.out.println("Input error. Exit!");
+            return;
+        }
     }
 }

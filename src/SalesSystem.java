@@ -2,6 +2,7 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 import java.lang.*;
+import java.text.*;
 
 public class SalesSystem {
     static Scanner in = new Scanner( System.in );
@@ -168,6 +169,8 @@ public class SalesSystem {
                     + " | " + rs.getString("mName") + " | " + rs.getString("cName")
                     + " | " + rs.getInt("pAvailableQuantity") + " | "
                     + rs.getInt("mWarrantlyPeriod") + " | " + rs.getInt("pPrice"));
+
+            System.out.println("End of Query");
         } //catch (NullPointerException nlp) {    
             //System.out.println("No part named " + keyword);
         //}
@@ -327,10 +330,155 @@ public class SalesSystem {
         System.out.println();
     }
     
+    
+    
+    public static void salesRecord(Connection conn){
+        System.out.print("Enter The Salesperson ID: ");
+        int sid = in.nextInt();
+        Scanner scan = new Scanner(System.in);
+        System.out.print("Type in the starting date [dd/mm/yyyy]: ");
+        String stDate = scan.nextLine();
+        System.out.print("Type in the ending date [dd/mm/yyyy]: ");
+        String endDate = scan.nextLine();
+        
+        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+        
+        Statement stmt = null;
+        
+        
+        try{
+            stmt = conn.createStatement();
+
+            //ResultSet rs = stmt.executeQuery("SELECT * FROM transaction NATURAL JOIN salesperson "
+            //                                 + "WHERE sID= " + sid + " AND tDate >=" + stDate + " AND tDate <= " +  endDate + " ORDER BY tDate DESC" );
+            
+            ResultSet rs = stmt.executeQuery("SELECT *"
+                                             + "FROM Manufacturer M, Part P, Transaction T "
+                                             + "WHERE T.sID = " + sid  + " AND P.pid = T.pid AND M.mid = P.mid AND "
+                                             + "T.tDate >= to_date('"+ stDate +"','DD/MM/YYYY') AND "
+                                             + "T.tDate <= to_date('"+ endDate + "','DD/MM/YYYY') " +
+                                             "ORDER BY T.tDate DESC");
+            
+            System.out.println("Transaction Record:");
+            System.out.println("| ID | Part ID | Part Name | Mnufacturer | Price | Date |");
+            
+            while (rs.next())
+                System.out.println("| " + rs.getInt("tID") + " | " + rs.getInt("pID") + " | " + rs.getString("pName")
+                                   + " | " + rs.getString("mName") + " | " + rs.getInt("pPrice") + " | " +  formatter.format(rs.getDate("tDate")) + " | " );
+            
+            System.out.println("End of Query");
+        }
+        catch (SQLException se) {
+            //Handle errors for JDBC
+            se.printStackTrace();
+        } catch (Exception e) {
+            //Handle errors for Class.forName
+            e.printStackTrace();
+        } finally {
+            System.out.println();
+            try{
+                if(stmt != null)
+                    stmt.close();
+            }catch(SQLException se){}
+        }
+        
+    }
+    
+    public static void totalSales(Connection conn){
+        Statement stmt = null;
+        try{
+            stmt = conn.createStatement();
+
+            //ResultSet rs = stmt.executeQuery("SELECT T.mID, T.mName "+
+            //                                 "FROM Transaction T, Part P, Manufacturer M " +
+            //                                 "WHERE P.pid = T.pid AND M.mid = P.mid " +
+            //                                 "GROUP BY T.mID ");
+            ResultSet rs = stmt.executeQuery("SELECT M.mid, M.mName, SUM (Temp.pSum) AS sum FROM Manufacturer M RIGHT JOIN ("+
+                                             "SELECT P.mid, P.pID, (P.pPrice * Temp2.count) AS pSum " +
+                                             "FROM Part P INNER JOIN (" +
+                                             "SELECT pID, COUNT(*) AS count FROM Transaction GROUP BY pID) Temp2 ON P.pID = Temp2.pID) Temp " +
+                                             "ON M.mid = Temp.mid GROUP BY M.mid, M.mName " +
+                                             "ORDER BY sum DESC");
+
+           // ResultSet rs = stmt.executeQuery("SELECT Temp.t_mid, SUM (Temp.t_price) AS sum FROM (SELECT M.mID AS t_mid, P.pPrice AS t_price, M.mName AS t_mname FROM Transaction T, Part P, Manufacturer M WHERE P.pid = T.pid AND M.mid = P.mid) Temp GROUP BY Temp.t_mid");
+           // ResultSet rs = stmt.executeQuery("SELECT Manufacturer.mPhoneNumber, COUNT (Manufacturer.mAddress)"
+             //                                + "FROM Manufacturer "
+               //                              + "GROUP BY Manufacturer.mID");
+
+            System.out.println("| Manufacturer ID | Manufacturer Name | Total Sales Value |");
+            
+            while (rs.next())
+                System.out.println("| " + rs.getInt("mID") + " | " + rs.getString("mName") + " | " + rs.getInt("sum")
+                                   + " | " );
+
+            System.out.println("End of Query");
+        }
+        
+        catch (SQLException se) {
+            //Handle errors for JDBC
+            se.printStackTrace();
+        } catch (Exception e) {
+            //Handle errors for Class.forName
+            e.printStackTrace();
+        } finally {
+            System.out.println();
+            try{
+                if(stmt != null)
+                    stmt.close();
+            }catch(SQLException se){}
+        }
+    }
+    
+    public static void popular(Connection conn){
+        Statement stmt = null;
+        System.out.print("Type in the number of parts: ");
+        int num = in.nextInt();
+        
+        try{
+            //ResultSet rs = stmt.executeQuery("SELECT * COUNT(*) AS count "
+            //      + "FROM transaction NATURAL JOIN part "
+            //      + "GROUP BY pID "
+            //      + "ORDER BY count DESC");
+            stmt = conn.createStatement();
+
+            
+            
+            ResultSet rs = stmt.executeQuery("SELECT Part.pID, Part.pName, count FROM Part, (" +
+                                             "SELECT Transaction.pID AS t_pID, COUNT (Transaction.pID) AS count " +
+                                             "FROM Transaction GROUP BY Transaction.pID) WHERE Part.pID = t_pID ORDER BY count DESC");
+            
+            System.out.println("| Part ID | Part Name | No. of Transaction |");
+            
+            int counter = 1;
+            
+            while (rs.next() && counter <= num){
+                System.out.println("| " + rs.getInt("pID") + " | " + rs.getString("pName") + " | " + rs.getInt("count") + " | "  );
+                counter = counter + 1;}
+                
+            System.out.println("End of Query");
+        }
+        
+        catch (SQLException se) {
+            //Handle errors for JDBC
+            se.printStackTrace();
+        } catch (Exception e) {
+            //Handle errors for Class.forName
+            e.printStackTrace();
+        } finally {
+            System.out.println();
+            try{
+                if(stmt != null)
+                    stmt.close();
+            }catch(SQLException se){}
+        }
+        
+    }
+
 
     public static void main(String args[]){
         //connect to database
         Connection connection = null;
+        try {
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
             connection = DriverManager.getConnection(
@@ -340,132 +488,158 @@ public class SalesSystem {
 
         catch (Exception e) {
             System.out.println(e.getMessage());
+
         }
 
-        try {
-            while (1==1)
-            {
-                System.out.println("Welcome to sales system!\n");
+        while (1==1)
+        {
+            System.out.println("Welcome to sales system!\n");
 
-                System.out.println("-----Main menu-----");
-                System.out.println("What kind of operation would you like to perform?\n");
-                System.out.println("1.Operation for administrator");
-                System.out.println("2.Operation for salesperson");
-                System.out.println("3.Operation for manager");
-                System.out.println("4.Exit this program");
-                System.out.print("Enter Your Choice: ");
+            System.out.println("-----Main menu-----");
+            System.out.println("What kind of operation would you like to perform?\n");
+            System.out.println("1.Operation for administrator");
+            System.out.println("2.Operation for salesperson");
+            System.out.println("3.Operation for manager");
+            System.out.println("4.Exit this program");
+            System.out.print("Enter Your Choice: ");
 
-                int c = in.nextInt();
+            int c = in.nextInt();
 
-                // administrator
-                if (c == 1){
-                    int choice = 0;
-                    while(1==1)
-                    {
-                        System.out.println("\n-----Operation for administrator menu-----");
-                        System.out.println("What kind of operation would you like to perform?\n");
-                        System.out.println("1.Create all tables");
-                        System.out.println("2.Delete all tables");
-                        System.out.println("3.Load from datafile");
-                        System.out.println("4.Show number of records in each table");
-                        System.out.println("5.Return to the main menu");
-                        System.out.print("Enter Your Choice: ");
-                        choice = in.nextInt();
-                        if (choice == 1){
+            // administrator
+            if (c == 1){
+                int choice = 0;
+                while(1==1)
+                {
+                    System.out.println("\n-----Operation for administrator menu-----");
+                    System.out.println("What kind of operation would you like to perform?\n");
+                    System.out.println("1.Create all tables");
+                    System.out.println("2.Delete all tables");
+                    System.out.println("3.Load from datafile");
+                    System.out.println("4.Show number of records in each table");
+                    System.out.println("5.Return to the main menu");
+                    System.out.print("Enter Your Choice: ");
+                    choice = in.nextInt();
+                    if (choice == 1){
 
-                            File file = null;
-                            try {
-                                file = new File("schema.sql");
-                                executeSqlScript(connection, file);
-                                System.out.println("Processing...Done! Database is initialized!");
-                            }
-                            catch (Exception e){};
+                        File file = null;
+                        try {
+                            file = new File("schema.sql");
+                            executeSqlScript(connection, file);
+                            System.out.println("Processing...Done! Database is initialized!");
+                            break;
+			}
+                        catch (Exception e){};
+                    }
+                    else if (choice == 2){
 
-                        }
-                        else if (choice == 2){
-
-                            File file = null;
-                            try {
-                                file = new File("delete.sql");
-                                executeSqlScript(connection, file);
-                                System.out.println("Processing...Done! Database is removed!");
-                            }
-                            catch (Exception e){};
-                        }
-                        else if (choice == 3){
-
-                            File file = null;
-                            try {
-                                file = new File("category.txt");
-                                loadData(connection, file, "category");
-
-                                file = new File("manufacturer.txt");
-                                loadData(connection, file, "manufacturer");
-
-                                file = new File("part.txt");
-                                loadData(connection, file, "part");
-
-                                file = new File("salesperson.txt");
-                                loadData(connection, file, "salesperson");
-
-                                file = new File("transaction.txt");
-                                loadData(connection, file, "transaction");
-
-                                System.out.println("Processing...Done! Data is input to the database!");
-                            }
-                            catch (Exception e){};
-
-
-                        }
-                        else if (choice == 4){
-                            System.out.println("Number of records in each table:");
-                            countRow(connection, "category");
-                            countRow(connection, "manufacturer");
-                            countRow(connection, "part");
-                            countRow(connection, "salesperson");
-                            countRow(connection, "transaction");
-                        }
-                        else if (choice == 5){
-                            System.out.println("5.Return...");
+                        File file = null;
+                        try {
+                            file = new File("delete.sql");
+                            executeSqlScript(connection, file);
+                            System.out.println("Processing...Done! Database is removed!");
                             break;
                         }
-                        else {
-                            System.out.println("No such choice");
-    //                    try{ connection.close(); }
-    //                    catch (Exception err) {};
-                            return;
+                        catch (Exception e){};
+                    }
+                    else if (choice == 3){
+
+                        System.out.print("Type in the Source Data Folder Path: ");
+			Scanner scan = new Scanner(System.in);
+			String path = scan.next();
+			//System.out.println(path);	
+			File file = null;
+                        try {
+                            file = new File(path+"/category.txt");
+                            loadData(connection, file, "category");
+
+                            file = new File(path+"/manufacturer.txt");
+                            loadData(connection, file, "manufacturer");
+
+                            file = new File(path+"/part.txt");
+                            loadData(connection, file, "part");
+
+                            file = new File(path+"/salesperson.txt");
+                            loadData(connection, file, "salesperson");
+
+                            file = new File(path+"/transaction.txt");
+                            loadData(connection, file, "transaction");
+
+                            System.out.println("Processing...Done! Data is input to the database!");
+                            break;
                         }
-                    }
+                        catch (Exception e){};
 
-                }
-                
-                // salesperson
-                else if (c == 2) {
-                    System.out.println("\n----Operations for salesperson menu-----");
-                    System.out.println("What kinds of operation would you like to perform?");
-                    System.out.println("1. Search for parts");
-                    System.out.println("2. Sell a part");
-                    System.out.println("3. Return to the main menu");
-                    System.out.print("Enter Your Choice: ");
 
-                    switch(in.nextInt()) {
-                        case 1: search(connection); break;
-                        case 2: sell(connection); break;
-                        case 3: returnMain(); break;
-                        default: System.out.println("Input error"); break;
+                    }
+                    else if (choice == 4){
+                        System.out.println("Number of records in each table:");
+                        countRow(connection, "category");
+                        countRow(connection, "manufacturer");
+                        countRow(connection, "part");
+                        countRow(connection, "salesperson");
+                        countRow(connection, "transaction");
+                        break;
+                    }
+                    else if (choice == 5){
+                        //System.out.println("5.Return...");
+                        break;
+                    }
+                    else {
+                        System.out.println("No such choice");
+//                    try{ connection.close(); }
+//                    catch (Exception err) {};
+                        return;
                     }
                 }
-                
-                // exit program
-                else if (c == 4)
-                    return;
 
             }
+            
+            // salesperson
+            else if (c == 2) {
+                System.out.println("\n----Operations for salesperson menu-----");
+                System.out.println("What kinds of operation would you like to perform?");
+                System.out.println("1. Search for parts");
+                System.out.println("2. Sell a part");
+                System.out.println("3. Return to the main menu");
+                System.out.print("Enter Your Choice: ");
+
+                switch(in.nextInt()) {
+                    case 1: search(connection); break;
+                    case 2: sell(connection); break;
+                    case 3: returnMain(); break;
+                    default: System.out.println("Input error"); break;
+                }
+            }
+            
+            // manager
+            else if (c == 3) {
+                System.out.println("\n----Operations for manager menu-----");
+                System.out.println("What kinds of operation would you like to perform?");
+                System.out.println("1. Show the sales record of a salesperson within a period");
+                System.out.println("2. Show the total sales value of each manufacturer");
+                System.out.println("3. Show the N most popular part");
+                System.out.println("4. Return to the main menu");
+                System.out.print("Enter Your Choice: ");
+                
+                switch(in.nextInt()) {
+                    case 1: salesRecord(connection); break;
+                    case 2: totalSales(connection); break;
+                    case 3: popular(connection); break;
+                    case 4: returnMain(); break;
+                    default: System.out.println("Input error"); break;
+                }
+            }
+
+            // exit program
+            else if (c == 4)
+                return;
+
         }
 
-        catch (Exception e) {
-            System.out.println("Input error. Exit!");
-            return;
+    }
+        catch (Exception err)
+        {
+            err.printStackTrace();
         }
     }
 }

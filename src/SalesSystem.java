@@ -7,7 +7,7 @@ import java.text.*;
 public class SalesSystem {
     static Scanner in = new Scanner( System.in );
 
-    public static void loadData(Connection conn, File inputFile, String table) {
+    public static void loadData(Connection conn, File inputFile, String table) throws Exception{
 
         // Delimiter
         String delimiter = "\t";
@@ -62,12 +62,15 @@ public class SalesSystem {
 
             }
         } catch (Exception e1) {
-            e1.printStackTrace();
-            return;
+            //System.out.println(e1.getMessage());
+            
+            //System.out.println("Cannot load from "+table+".txt");
+            throw e1;
+            //return;
         }
     }
 
-    public static void executeSqlScript(Connection conn, File inputFile) {
+    public static void executeSqlScript(Connection conn, File inputFile, String command) throws Exception{
 
         // Delimiter
         String delimiter = ";";
@@ -77,12 +80,14 @@ public class SalesSystem {
         try {
             scanner = new Scanner(inputFile).useDelimiter(delimiter);
         } catch (FileNotFoundException e1) {
-            e1.printStackTrace();
+            System.out.println(e1.getMessage());
             return;
         }
 
         // Loop through the SQL file statements
         Statement currentStatement = null;
+    
+        int error = 0;
         while(scanner.hasNext()) {
 
             // Get statement
@@ -97,23 +102,40 @@ public class SalesSystem {
                 currentStatement = conn.createStatement();
                 currentStatement.execute(rawStatement);
             } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
+                //System.out.println(e.getMessage());
+                error = 1;
+               // throw e;
+            }
+            finally {
                 // Release resources
                 if (currentStatement != null) {
                     try {
                         currentStatement.close();
                     } catch (SQLException e) {
-                        e.printStackTrace();
+                        System.out.println(e.getMessage());
+
                     }
                 }
                 currentStatement = null;
             }
         }
+
         scanner.close();
+        if (error == 1) {
+            if (command.equals("create"))
+                System.out.println("Table exist. Cannot create table.");
+            else if (command.equals("delete"))
+                System.out.println("Table not exist. Cannot delete table.");
+        }
+        else {
+            if (command.equals("create"))
+                System.out.println("Processing...Done! Database is initialized!");
+            else if (command.equals("delete"))
+                System.out.println("Processing...Done! Database is removed!");
+        }
     }
 
-    public static void countRow(Connection conn, String table) {
+    public static void countRow(Connection conn, String table) throws Exception{
        try {
            Statement currentStatement = conn.createStatement();
            ResultSet rs = currentStatement.executeQuery("SELECT * FROM "+table);
@@ -122,7 +144,9 @@ public class SalesSystem {
                count++;
            System.out.println(table + ": " + count);
        }
-       catch (Exception e) {e.printStackTrace();};
+        catch (Exception e) {System.out.println(e.getMessage());
+           throw e;
+       };
 
     }
     
@@ -176,10 +200,12 @@ public class SalesSystem {
         //}
         catch(SQLException se){
             //Handle errors for JDBC
-            se.printStackTrace();
+            // se.printStackTrace();
+            System.out.println("SQL returns error.");
         } catch(Exception e){
             //Handle errors for Class.forName
-            e.printStackTrace();
+            // e.printStackTrace();
+            System.out.println("Search by part error.");
         } finally{
             System.out.println();
             try{
@@ -224,10 +250,12 @@ public class SalesSystem {
                     + rs.getInt("mWarrantlyPeriod") + " | " + rs.getInt("pPrice"));
         } catch (SQLException se) {
             //Handle errors for JDBC
-            se.printStackTrace();
+            // se.printStackTrace();
+            System.out.println("SQL returns error.");
         } catch (Exception e) {
             //Handle errors for Class.forName
-            e.printStackTrace();
+            // e.printStackTrace();
+            System.out.println("Search by Manufacture error.");
         } finally{
             System.out.println();
             try{
@@ -311,10 +339,12 @@ public class SalesSystem {
             }
         } catch (SQLException se) {
             //Handle errors for JDBC
-            se.printStackTrace();
+            // se.printStackTrace();
+            System.out.println("SQL returns error.");
         } catch (Exception e) {
             //Handle errors for Class.forName
-            e.printStackTrace();
+            // e.printStackTrace();
+            System.out.println("Sell error.");
         } finally {
             System.out.println();
             try{
@@ -370,10 +400,12 @@ public class SalesSystem {
         }
         catch (SQLException se) {
             //Handle errors for JDBC
-            se.printStackTrace();
+            // se.printStackTrace();
+            System.out.println("SQL returns error.");            
         } catch (Exception e) {
             //Handle errors for Class.forName
-            e.printStackTrace();
+            // e.printStackTrace();
+            System.out.println("Sales record error.");    
         } finally {
             System.out.println();
             try{
@@ -416,10 +448,12 @@ public class SalesSystem {
         
         catch (SQLException se) {
             //Handle errors for JDBC
-            se.printStackTrace();
+            // se.printStackTrace();
+            System.out.println("SQL returns error.");            
         } catch (Exception e) {
             //Handle errors for Class.forName
-            e.printStackTrace();
+            // e.printStackTrace();
+            System.out.println("SQL returns error.");         
         } finally {
             System.out.println();
             try{
@@ -460,10 +494,12 @@ public class SalesSystem {
         
         catch (SQLException se) {
             //Handle errors for JDBC
-            se.printStackTrace();
+            // se.printStackTrace();
+            System.out.println("SQL returns error.");            
         } catch (Exception e) {
             //Handle errors for Class.forName
-            e.printStackTrace();
+            // e.printStackTrace();
+            System.out.println("SQL returns error.");   
         } finally {
             System.out.println();
             try{
@@ -493,6 +529,7 @@ public class SalesSystem {
 
         while (1==1)
         {
+            System.out.println("");
             System.out.println("Welcome to sales system!\n");
 
             System.out.println("-----Main menu-----");
@@ -522,24 +559,21 @@ public class SalesSystem {
                     if (choice == 1){
 
                         File file = null;
-                        try {
+                       
                             file = new File("schema.sql");
-                            executeSqlScript(connection, file);
-                            System.out.println("Processing...Done! Database is initialized!");
+                            executeSqlScript(connection, file, "create");
+                           // System.out.println("Processing...Done! Database is initialized!");
                             break;
-			}
-                        catch (Exception e){};
                     }
                     else if (choice == 2){
 
                         File file = null;
-                        try {
+                      
                             file = new File("delete.sql");
-                            executeSqlScript(connection, file);
-                            System.out.println("Processing...Done! Database is removed!");
+                            executeSqlScript(connection, file, "delete");
+                            //System.out.println("Processing...Done! Database is removed!");
                             break;
-                        }
-                        catch (Exception e){};
+                
                     }
                     else if (choice == 3){
 
@@ -567,17 +601,25 @@ public class SalesSystem {
                             System.out.println("Processing...Done! Data is input to the database!");
                             break;
                         }
-                        catch (Exception e){};
+                        catch (Exception e){System.out.println("Cannot load data.");
+                            break;}
 
 
                     }
                     else if (choice == 4){
                         System.out.println("Number of records in each table:");
+                        try {
                         countRow(connection, "category");
                         countRow(connection, "manufacturer");
                         countRow(connection, "part");
                         countRow(connection, "salesperson");
                         countRow(connection, "transaction");
+                        }
+                        catch (Exception e) {
+                            System.out.println("No table exist.");
+                            break;
+                        }
+                        
                         break;
                     }
                     else if (choice == 5){
@@ -585,10 +627,10 @@ public class SalesSystem {
                         break;
                     }
                     else {
-                        System.out.println("No such choice");
+                        System.out.println("No such choice.");
 //                    try{ connection.close(); }
 //                    catch (Exception err) {};
-                        return;
+                        break;
                     }
                 }
 
@@ -639,7 +681,8 @@ public class SalesSystem {
     }
         catch (Exception err)
         {
-            err.printStackTrace();
+            System.out.println("Input error");
+            //err.printStackTrace();
         }
     }
 }
